@@ -1,0 +1,25 @@
+{
+    "name": "mg-code/yii2-image-on-fly",
+    "description": "Yii2+Nginx dynamic image resizing with caching",
+    "keywords": ["yii2", "extension", "image", "resize", "resize on the fly"],
+    "homepage": "https://github.com/mg-code/yii2-image-on-fly",
+    "type": "yii2-extension",
+    "license": "BSD 3-Clause",
+    "authors": [
+        {
+            "name": "Maris Graudins",
+            "role": "Developer"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "yiisoft/yii2": "*",
+        "yiisoft/yii2-httpclient": "*",
+        "mg-code/yii2-helpers": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "mgcode\\imagefly\\": ""
+        }
+    }
+}
