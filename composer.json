@@ -13,9 +13,11 @@
     ],
     "minimum-stability": "dev",
     "require": {
-        "yiisoft/yii2": "*",
+        "ext-imagick": "*",
+        "yiisoft/yii2": ">=2.0.13",
         "yiisoft/yii2-httpclient": "*",
-        "mg-code/yii2-helpers": "*"
+        "mg-code/yii2-helpers": "*",
+        "imagine/imagine": "0.7.*"
     },
     "autoload": {
         "psr-4": {
