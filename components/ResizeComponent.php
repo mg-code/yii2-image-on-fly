@@ -45,8 +45,7 @@ class ResizeComponent extends \yii\base\BaseObject
         if (!is_dir($directory)) {
             FileHelper::createDirectory($directory);
         }
-        $image = $this->createImage($originalFile, $params);
-        $options = $this->buildOptions($params);
+        $image = $this->createImage($originalFile, $params, $options);
         $image->save($destinationFile, $options);
         return true;
     }
@@ -60,8 +59,7 @@ class ResizeComponent extends \yii\base\BaseObject
      */
     public function get($originalFile, $extension, $params)
     {
-        $image = $this->createImage($originalFile, $params);
-        $options = $this->buildOptions($params);
+        $image = $this->createImage($originalFile, $params, $options);
         return $image->get($extension, $options);
     }
 
@@ -69,40 +67,37 @@ class ResizeComponent extends \yii\base\BaseObject
      * Creates image instance from given parameters
      * @param $originalFile
      * @param $params
+     * @param $options
      * @return ImagineImage
      */
-    protected function createImage($originalFile, $params)
+    protected function createImage($originalFile, $params, &$options)
     {
         $imagine = new Imagine();
         $image = $imagine->open($originalFile);
 
         $params = array_merge($this->defaultParameters, $params);
 
+        // Build options for image processing
+        $options = [];
+        if (isset($params[static::PARAM_JPEG_QUALITY])) {
+            $options['jpeg_quality'] = $params[static::PARAM_JPEG_QUALITY];
+        }
+        if ($image->layers()->count() > 1) {
+            $options['animated'] = true;
+        }
+
         // Resize image
         if (isset($params[static::PARAM_WIDTH]) || isset($params[static::PARAM_HEIGHT])) {
             $this->resize($image, $params);
         }
 
+        // Blur image
         if (isset($params[static::PARAM_BLUR])) {
             $blur = (int) $params[static::PARAM_BLUR];
             $image->effects()->blur($blur);
         }
 
         return $image;
-    }
-
-    /**
-     * Builds options from parameters
-     * @param array $params
-     * @return array
-     */
-    protected function buildOptions($params)
-    {
-        $options = [];
-        if (isset($params[static::PARAM_JPEG_QUALITY])) {
-            $options['jpeg_quality'] = $params[static::PARAM_JPEG_QUALITY];
-        }
-        return $options;
     }
 
     /**
@@ -114,7 +109,6 @@ class ResizeComponent extends \yii\base\BaseObject
     {
         // Animated gif
         if ($image->layers()->count() > 1) {
-            $options['animated'] = true;
             $image->layers()->coalesce();
             foreach ($image->layers() as $frame) {
                 $frame->interlace(ImagineInterface::INTERLACE_PLANE);
