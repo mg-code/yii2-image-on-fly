@@ -5,6 +5,7 @@ namespace mgcode\imagefly\components;
 use Imagine\Image\ImageInterface as ImagineInterface;
 use Imagine\Imagick\Image as ImagineImage;
 use Imagine\Imagick\Imagine;
+use yii\helpers\FileHelper;
 
 class ResizeComponent extends \yii\base\BaseObject
 {
@@ -30,23 +31,52 @@ class ResizeComponent extends \yii\base\BaseObject
     public $owner;
 
     /**
+     * Performs image resize and saves it to file
+     * @param string $originalFile
+     * @param string $destinationFile
+     * @param array $params
+     * @return bool
+     * @throws \yii\base\Exception
+     */
+    public function save($originalFile, $destinationFile, $params)
+    {
+        // Create directory if it does not exists
+        $directory = dirname($destinationFile);
+        if (!is_dir($directory)) {
+            FileHelper::createDirectory($directory);
+        }
+        $image = $this->createImage($originalFile, $params);
+        $options = $this->buildOptions($params);
+        $image->save($destinationFile, $options);
+        return true;
+    }
+
+    /**
+     * Performs image resize and returns image content
+     * @param $originalFile
+     * @param $extension
+     * @param $params
+     * @return string
+     */
+    public function get($originalFile, $extension, $params)
+    {
+        $image = $this->createImage($originalFile, $params);
+        $options = $this->buildOptions($params);
+        return $image->get($extension, $options);
+    }
+
+    /**
      * Creates image instance from given parameters
      * @param $originalFile
      * @param $params
      * @return ImagineImage
      */
-    public function createImage($originalFile, $params)
+    protected function createImage($originalFile, $params)
     {
         $imagine = new Imagine();
         $image = $imagine->open($originalFile);
 
         $params = array_merge($this->defaultParameters, $params);
-
-        // Additional options
-        $options = [];
-        if (isset($params[static::PARAM_JPEG_QUALITY])) {
-            $options['jpeg_quality'] = $params[static::PARAM_JPEG_QUALITY];
-        }
 
         // Resize image
         if (isset($params[static::PARAM_WIDTH]) || isset($params[static::PARAM_HEIGHT])) {
@@ -59,6 +89,20 @@ class ResizeComponent extends \yii\base\BaseObject
         }
 
         return $image;
+    }
+
+    /**
+     * Builds options from parameters
+     * @param array $params
+     * @return array
+     */
+    protected function buildOptions($params)
+    {
+        $options = [];
+        if (isset($params[static::PARAM_JPEG_QUALITY])) {
+            $options['jpeg_quality'] = $params[static::PARAM_JPEG_QUALITY];
+        }
+        return $options;
     }
 
     /**

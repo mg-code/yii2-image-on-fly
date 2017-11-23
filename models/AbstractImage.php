@@ -55,7 +55,7 @@ abstract class AbstractImage extends \yii\db\ActiveRecord
 
     /**
      * @inheritdoc
-     * @return \mgcode\image\models\queries\ImageQuery the active query used by this AR class.
+     * @return \mgcode\imagefly\models\queries\ImageQuery the active query used by this AR class.
      */
     public static function find()
     {

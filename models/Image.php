@@ -6,6 +6,7 @@ use mgcode\helpers\ActiveRecordHelperTrait;
 
 /**
  * This is the model class for table "image".
+ * @property string $fullPath
  */
 class Image extends AbstractImage
 {
@@ -21,7 +22,11 @@ class Image extends AbstractImage
         return \Yii::$app->image->getImageUrl($this->getFullPath(), $params);
     }
 
-    protected function getFullPath()
+    /**
+     * Returns full path of image
+     * @return string
+     */
+    public function getFullPath()
     {
         return $this->path.'/'.$this->filename;
     }

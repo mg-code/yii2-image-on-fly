@@ -65,8 +65,7 @@ class ResizeController extends Controller
 
         $output = $component
             ->resize
-            ->createImage($originalFile, $params)
-            ->get($extension);
+            ->get($originalFile, $extension, $params);
 
         \Yii::$app->response->format = Response::FORMAT_RAW;
         header('Content-Type: '.$mimeType);

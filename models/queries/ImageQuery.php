@@ -3,9 +3,9 @@
 namespace mgcode\imagefly\models\queries;
 
 /**
- * This is the ActiveQuery class for [[\mgcode\image\models\Image]].
+ * This is the ActiveQuery class for [[\mgcode\imagefly\models\Image]].
  *
- * @see \mgcode\image\models\Image
+ * @see \mgcode\imagefly\models\Image
  */
 class ImageQuery extends \yii\db\ActiveQuery
 {
