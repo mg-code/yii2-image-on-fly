@@ -15,8 +15,8 @@ class m161209_161527_image_table extends Migration
             'filename' => $this->string(255)->notNull(),
             'path' => $this->string(255)->notNull(),
             'mime_type' => $this->string(32)->notNull(),
-            'height' => $this->smallInteger(4)->notNull(),
-            'width' => $this->smallInteger(4)->notNull(),
+            'height' => $this->smallInteger(4)->unsigned()->notNull(),
+            'width' => $this->smallInteger(4)->unsigned()->notNull(),
             'created_at' => $this->timestamp()->notNull()->defaultExpression('CURRENT_TIMESTAMP'),
         ], $strOptions);
     }
