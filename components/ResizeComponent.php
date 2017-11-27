@@ -16,6 +16,7 @@ class ResizeComponent extends \yii\base\BaseObject
     const PARAM_RATIO = 'r';
     const PARAM_BLUR = 'b';
     const PARAM_NO_ZOOM_IN = 'nz';
+    const PARAM_CROP = 'c';
 
     const RATIO_MIN = 'min'; // any of sides is not larger than specified
     const RATIO_MAX = 'max'; // any of sides is smaller larger than specified (Images are not zoomed in)
@@ -24,6 +25,7 @@ class ResizeComponent extends \yii\base\BaseObject
     public $defaultParameters = [
         self::PARAM_JPEG_QUALITY => 75,
         self::PARAM_RATIO => self::RATIO_MAX,
+        self::PARAM_CROP => 0,
         self::PARAM_NO_ZOOM_IN => 1,
     ];
 
@@ -86,8 +88,11 @@ class ResizeComponent extends \yii\base\BaseObject
             $options['animated'] = true;
         }
 
-        // Resize image
-        if (isset($params[static::PARAM_WIDTH]) || isset($params[static::PARAM_HEIGHT])) {
+        // Crop image
+        if (isset($params[static::PARAM_CROP]) && $params[static::PARAM_CROP] && isset($params[static::PARAM_WIDTH], $params[static::PARAM_HEIGHT])) {
+            $image->getImagick()->cropThumbnailImage((int) $params[static::PARAM_WIDTH], (int) $params[static::PARAM_HEIGHT]);
+        } // Resize image
+        else if (isset($params[static::PARAM_WIDTH]) || isset($params[static::PARAM_HEIGHT])) {
             $this->resize($image, $params);
         }
 
