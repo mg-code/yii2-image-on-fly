@@ -67,8 +67,13 @@ class ResizeController extends Controller
             ->resize
             ->get($originalFile, $extension, $params);
 
-        \Yii::$app->response->format = Response::FORMAT_RAW;
-        header('Content-Type: '.$mimeType);
+        $response = \Yii::$app->response;
+        header_remove('Expires');
+        header_remove('Cache-Control');
+        header_remove('Last-Modified');
+        header_remove('Pragma');
+        $response->format = Response::FORMAT_RAW;
+        $response->headers->add('Content-Type', $mimeType);
         return $output;
     }
 
