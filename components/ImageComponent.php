@@ -112,7 +112,7 @@ class ImageComponent extends BaseObject
     {
         // Validate mime
         $mimeType = FileHelper::getMimeType($instance->tempName);
-        if (!$mimeType || !static::isMimeTypeValid($mimeType)) {
+        if (!$mimeType || !$this->isMimeTypeValid($mimeType)) {
             throw new \Exception('Wrong mime type. Given: '.$mimeType);
         }
         return $this->saveImage($instance->tempName, $mimeType);
