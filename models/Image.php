@@ -13,6 +13,20 @@ class Image extends AbstractImage
     use ActiveRecordHelperTrait;
 
     /**
+     * Builds srcset from array of sizes
+     * @param array $sizes E.g. ['1600w' => ImageType::EXTRA_LARGE, '1200w' => ImageType::LARGE]
+     * @return string
+     */
+    public function buildSrcset($sizes = [])
+    {
+        $result = [];
+        foreach($sizes as $size => $params) {
+            $result[] = $this->getUrl($params).' '.$size;
+        }
+        return implode(', ',$result);
+    }
+
+    /**
      * Returns public url of image
      * @param $params
      * @return string
