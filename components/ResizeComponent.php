@@ -19,7 +19,7 @@ class ResizeComponent extends \yii\base\BaseObject
     const PARAM_CROP = 'c';
 
     const RATIO_MIN = 'min'; // any of sides is not larger than specified
-    const RATIO_MAX = 'max'; // any of sides is smaller larger than specified (Images are not zoomed in)
+    const RATIO_MAX = 'max'; // any of sides is equal or larger than specified (Images are not zoomed in, if they are smaller)
 
     /** @var array Default parameters */
     public $defaultParameters = [
