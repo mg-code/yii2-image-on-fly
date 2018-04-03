@@ -3,6 +3,8 @@
 namespace mgcode\imagefly\components;
 
 use Imagine\Image\ImageInterface as ImagineInterface;
+use Imagine\Image\Palette\RGB;
+use Imagine\Image\Point;
 use Imagine\Imagick\Image as ImagineImage;
 use Imagine\Imagick\Imagine;
 use yii\helpers\FileHelper;
@@ -17,6 +19,7 @@ class ResizeComponent extends \yii\base\BaseObject
     const PARAM_BLUR = 'b';
     const PARAM_NO_ZOOM_IN = 'nz';
     const PARAM_CROP = 'c';
+    const PARAM_BACKGROUND = 'b';
 
     const RATIO_MIN = 'min'; // any of sides is not larger than specified
     const RATIO_MAX = 'max'; // any of sides is equal or larger than specified (Images are not zoomed in, if they are smaller)
@@ -75,9 +78,17 @@ class ResizeComponent extends \yii\base\BaseObject
     protected function createImage($originalFile, $params, &$options)
     {
         $imagine = new Imagine();
-        $image = $imagine->open($originalFile);
+
+        $original = $imagine->open($originalFile);
 
         $params = array_merge($this->defaultParameters, $params);
+        if (isset($params[static::PARAM_BACKGROUND])) {
+            $color = (new RGB())->color($params[static::PARAM_BACKGROUND]);
+            $image = $imagine->create($original->getSize(), $color);
+            $image->paste($original, new Point(0, 0));
+        } else {
+            $image = $original;
+        }
 
         // Build options for image processing
         $options = [];
