@@ -19,7 +19,7 @@ class ResizeComponent extends \yii\base\BaseObject
     const PARAM_BLUR = 'b';
     const PARAM_NO_ZOOM_IN = 'nz';
     const PARAM_CROP = 'c';
-    const PARAM_BACKGROUND = 'b';
+    const PARAM_BACKGROUND = 'bg';
 
     const RATIO_MIN = 'min'; // any of sides is not larger than specified
     const RATIO_MAX = 'max'; // any of sides is equal or larger than specified (Images are not zoomed in, if they are smaller)
