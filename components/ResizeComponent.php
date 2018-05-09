@@ -69,6 +69,42 @@ class ResizeComponent extends \yii\base\BaseObject
     }
 
     /**
+     * Calculates ratio based on parameters
+     * @param int $originalWidth
+     * @param int $originalHeight
+     * @param array $params
+     * @return float
+     */
+    public static function calculateRatio(int $originalWidth, int $originalHeight, array $params): float
+    {
+        // Calculate image ratios
+        $ratios = [];
+        if (isset($params[static::PARAM_WIDTH])) {
+            $ratios[] = (int) $params[static::PARAM_WIDTH] / $originalWidth;
+        }
+        if (isset($params[static::PARAM_HEIGHT])) {
+            $ratios[] = (int) $params[static::PARAM_HEIGHT] / $originalHeight;
+        }
+        if (!$ratios) {
+            return 1;
+        }
+
+        // Choose ratio by ratio algorithm
+        if (isset($params[static::PARAM_RATIO]) && $params[static::PARAM_RATIO] == static::RATIO_MIN) {
+            $ratio = min($ratios);
+        } else {
+            $ratio = max($ratios);
+        }
+
+        // No zoom in image
+        $noZoomIn = !isset($params[static::PARAM_NO_ZOOM_IN]) || $params[static::PARAM_NO_ZOOM_IN];
+        if ($noZoomIn && $ratio >= 1) {
+            return 1;
+        }
+        return $ratio;
+    }
+
+    /**
      * Creates image instance from given parameters
      * @param $originalFile
      * @param $params
@@ -146,29 +182,8 @@ class ResizeComponent extends \yii\base\BaseObject
     protected function resizeLayer(ImagineImage $image, $params)
     {
         $imageSize = $image->getSize();
-
-        // Calculate image ratios
-        $ratios = [];
-        if (isset($params[static::PARAM_WIDTH])) {
-            $ratios[] = (int) $params[static::PARAM_WIDTH] / $imageSize->getWidth();
-        }
-        if (isset($params[static::PARAM_HEIGHT])) {
-            $ratios[] = (int) $params[static::PARAM_HEIGHT] / $imageSize->getHeight();
-        }
-        if (!$ratios) {
-            return $image;
-        }
-
-        // Choose ratio by ratio algorithm
-        if (isset($params[static::PARAM_RATIO]) && $params[static::PARAM_RATIO] == static::RATIO_MIN) {
-            $ratio = min($ratios);
-        } else {
-            $ratio = max($ratios);
-        }
-
-        // No zoom in image
-        $noZoomIn = !isset($params[static::PARAM_NO_ZOOM_IN]) || $params[static::PARAM_NO_ZOOM_IN];
-        if ($noZoomIn && $ratio >= 1) {
+        $ratio = static::calculateRatio($imageSize->getWidth(), $imageSize->getHeight(), $params);
+        if ($ratio === 1) {
             return $image;
         }
 
