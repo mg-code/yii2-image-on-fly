@@ -20,6 +20,8 @@ class ResizeComponent extends \yii\base\BaseObject
     const PARAM_NO_ZOOM_IN = 'nz';
     const PARAM_CROP = 'c';
     const PARAM_BACKGROUND = 'bg';
+    const PARAM_NORMALIZE = 'n';
+    const PARAM_AUTO_GAMMA = 'ag';
 
     const RATIO_MIN = 'min'; // any of sides is not larger than specified
     const RATIO_MAX = 'max'; // any of sides is equal or larger than specified (Images are not zoomed in, if they are smaller)
@@ -124,6 +126,14 @@ class ResizeComponent extends \yii\base\BaseObject
             $image->paste($original, new Point(0, 0));
         } else {
             $image = $original;
+        }
+
+        if (isset($params[static::PARAM_NORMALIZE]) && $params[static::PARAM_NORMALIZE]) {
+            $image->getImagick()->normalizeImage();
+        }
+
+        if (isset($params[static::PARAM_AUTO_GAMMA]) && $params[static::PARAM_AUTO_GAMMA]) {
+            $image->getImagick()->autoGammaImage();
         }
 
         // Build options for image processing
