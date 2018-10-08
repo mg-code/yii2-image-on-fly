@@ -305,7 +305,7 @@ class ImageComponent extends BaseObject
     /**
      * Returns full path of image
      * @param $path
-     * @return array
+     * @return string
      */
     public function getOriginalFile($path)
     {
