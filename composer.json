@@ -16,8 +16,9 @@
         "ext-imagick": "*",
         "yiisoft/yii2": ">=2.0.13",
         "yiisoft/yii2-httpclient": "*",
-        "mg-code/yii2-helpers": "*",
-        "imagine/imagine": "0.7.*"
+        "imagine/imagine": "0.7.*",
+        "creocoder/yii2-flysystem": "0.9.*",
+        "mg-code/yii2-helpers": "*"
     },
     "autoload": {
         "psr-4": {

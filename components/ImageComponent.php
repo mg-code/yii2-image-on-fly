@@ -1,6 +1,9 @@
 <?php
+
 namespace mgcode\imagefly\components;
 
+use creocoder\flysystem\Filesystem;
+use League\Flysystem\AdapterInterface;
 use mgcode\helpers\NumberHelper;
 use mgcode\helpers\TimeHelper;
 use Yii;
@@ -17,24 +20,19 @@ use yii\web\UploadedFile;
 /**
  * Class ImageComponent
  * @package mgcode\imagefly\components
- * @property string|null $uploadPath
- * @property string|null $scheme
  */
 class ImageComponent extends BaseObject
 {
     /**
-     * Upload path prefix, where all images will be stored.
-     * Usually usable if you use shared server for storing images from different environments.
-     * @var string
+     * Storage adapter for original images
+     * @var Filesystem
      */
-    public $pathPrefix;
+    public $originalStorage;
 
     /**
      * Template for building urls.
-     * You can use {scheme}, {signature}, {path} variables.
+     * You can use {signature}, {path} variables.
      * {signature} and {path} variables are mandatory.
-     * To use hardcoded scheme (e.g. for console commands) set [[scheme]]
-     * parameter in components configuration.
      * @var string
      */
     public $urlTemplate = '/media/{signature}/{path}';
@@ -75,18 +73,6 @@ class ImageComponent extends BaseObject
      */
     public $resize = 'mgcode\imagefly\components\ResizeComponent';
 
-    /**
-     * Parent directory where all uploaded images will be stored.
-     * @var string|null
-     */
-    private $_uploadPath;
-
-    /**
-     * Current scheme
-     * @var string|null
-     */
-    private $_scheme;
-
     /** @inheritdoc */
     public function init()
     {
@@ -94,12 +80,8 @@ class ImageComponent extends BaseObject
         if ($this->signatureSalt === null) {
             throw new InvalidConfigException('`signatureSalt` must be set.');
         }
-        if ($this->_uploadPath === null) {
-            throw new InvalidConfigException('Please set `uploadPath` to path where you want to store images.');
-        }
-
+        $this->originalStorage = Instance::ensure($this->originalStorage, Filesystem::className());
         $this->resize = Instance::ensure($this->resize, ResizeComponent::className());
-        $this->resize->owner = $this;
     }
 
     /**
@@ -209,8 +191,11 @@ class ImageComponent extends BaseObject
             $image->filename = $image->id.'.'.$extension;
             $image->saveOrFail();
 
-            $destination = $this->buildFullPath($image->getFullPath());
-            $this->resize->save($tmpLocation, $destination, $this->originalImageParams);
+            // Save content
+            $content = $this->resize->thumbFromFile($tmpLocation, $extension, $this->originalImageParams);
+            $this->originalStorage->put($image->getFullPath(), $content, [
+                'visibility' => AdapterInterface::VISIBILITY_PRIVATE
+            ]);
 
             return $image;
         });
@@ -226,7 +211,6 @@ class ImageComponent extends BaseObject
     {
         $signature = $this->generateSignature($path, $params);
         $url = strtr($this->urlTemplate, [
-            '{scheme}' => $this->getScheme(),
             '{signature}' => $signature,
             '{path}' => $path,
         ]);
@@ -283,65 +267,6 @@ class ImageComponent extends BaseObject
     }
 
     /**
-     * Returns current upload path
-     * @return string|null
-     */
-    public function getUploadPath()
-    {
-        return $this->_uploadPath;
-    }
-
-    /**
-     * Changes the current upload path.
-     * @param string $value
-     */
-    public function setUploadPath($value)
-    {
-        $value = Yii::getAlias($value);
-        $value = realpath($value);
-        $this->_uploadPath = $value;
-    }
-
-    /**
-     * Returns full path of image
-     * @param $path
-     * @return string
-     */
-    public function getOriginalFile($path)
-    {
-        if (!$this->pathInsideRoot($path)) {
-            return false;
-        }
-        $fullPath = $this->getRealPath($path);
-        if (!$fullPath || !file_exists($fullPath)) {
-            return false;
-        }
-        return $fullPath;
-    }
-
-    /**
-     * Returns current scheme
-     * @return null|string
-     */
-    public function getScheme()
-    {
-        if ($this->_scheme !== null) {
-            return $this->_scheme;
-        }
-        $isSecure = \Yii::$app->request->getIsSecureConnection();
-        return $isSecure ? 'https' : 'http';
-    }
-
-    /**
-     * Changes the current scheme
-     * @param $value
-     */
-    public function setScheme($value)
-    {
-        $this->_scheme = $value;
-    }
-
-    /**
      * This is native php function wrapper, native function raises error.
      * @param $fileName
      * @param null $imageInfo
@@ -362,47 +287,6 @@ class ImageComponent extends BaseObject
     }
 
     /**
-     * Whether path is inside upload path
-     * @param $path
-     * @return bool
-     */
-    protected function pathInsideRoot($path)
-    {
-        $path = $this->getRealPath($path);
-        if (!$path) {
-            return false;
-        }
-        return strpos($path, $this->getUploadPath()) === 0;
-    }
-
-    /**
-     * Returns real path of path
-     * @param $path
-     * @return bool|string
-     */
-    protected function getRealPath($path)
-    {
-        $path = $this->buildFullPath($path);
-        $path = realpath($path);
-        if (!$path) {
-            return false;
-        }
-        return $path;
-    }
-
-    /**
-     * Builds full path from relative
-     * @param $path
-     * @return string
-     */
-    protected function buildFullPath($path)
-    {
-        $path = $this->getUploadPath().DIRECTORY_SEPARATOR.$path;
-        $path = FileHelper::normalizePath($path);
-        return $path;
-    }
-
-    /**
      * Returns base path for image
      * @param $id
      * @return string
@@ -414,7 +298,7 @@ class ImageComponent extends BaseObject
         $leadingZeros = NumberHelper::leadingZeros($id, 6);
         $folder1 = substr($leadingZeros, 0, 3);
         $folder2 = substr($leadingZeros, 3);
-        $path = implode('/', [$this->pathPrefix, $parentFolder, $folder1, $folder2]);
+        $path = implode('/', [$parentFolder, $folder1, $folder2]);
         $path = trim($path, '/');
 
         return $path;

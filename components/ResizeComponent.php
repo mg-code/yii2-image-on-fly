@@ -34,29 +34,6 @@ class ResizeComponent extends \yii\base\BaseObject
         self::PARAM_NO_ZOOM_IN => 1,
     ];
 
-    /** @var ImageComponent */
-    public $owner;
-
-    /**
-     * Performs image resize and saves it to file
-     * @param string $originalFile
-     * @param string $destinationFile
-     * @param array $params
-     * @return bool
-     * @throws \yii\base\Exception
-     */
-    public function save($originalFile, $destinationFile, $params)
-    {
-        // Create directory if it does not exists
-        $directory = dirname($destinationFile);
-        if (!is_dir($directory)) {
-            FileHelper::createDirectory($directory);
-        }
-        $image = $this->createImage($originalFile, $params, $options);
-        $image->save($destinationFile, $options);
-        return true;
-    }
-
     /**
      * Performs image resize and returns image content
      * @param $originalFile
@@ -64,10 +41,27 @@ class ResizeComponent extends \yii\base\BaseObject
      * @param $params
      * @return string
      */
-    public function get($originalFile, $extension, $params)
+    public function thumbFromFile($originalFile, $extension, $params)
     {
-        $image = $this->createImage($originalFile, $params, $options);
-        return $image->get($extension, $options);
+        $original = (new Imagine())->open($originalFile);
+        return $this
+            ->createImage($original, $params, $options)
+            ->get($extension, $options);
+    }
+
+    /**
+     * Performs image resize and returns image content
+     * @param $content
+     * @param $extension
+     * @param $params
+     * @return string
+     */
+    public function thumbFromContent($content, $extension, $params)
+    {
+        $original = (new Imagine())->load($content);
+        return $this
+            ->createImage($original, $params, $options)
+            ->get($extension, $options);
     }
 
     /**
@@ -113,16 +107,12 @@ class ResizeComponent extends \yii\base\BaseObject
      * @param $options
      * @return ImagineImage
      */
-    protected function createImage($originalFile, $params, &$options)
+    protected function createImage(ImagineImage $original, $params, &$options)
     {
-        $imagine = new Imagine();
-
-        $original = $imagine->open($originalFile);
-
         $params = array_merge($this->defaultParameters, $params);
         if (isset($params[static::PARAM_BACKGROUND])) {
             $color = (new RGB())->color($params[static::PARAM_BACKGROUND]);
-            $image = $imagine->create($original->getSize(), $color);
+            $image = (new Imagine())->create($original->getSize(), $color);
             $image->paste($original, new Point(0, 0));
         } else {
             $image = $original;

@@ -48,14 +48,14 @@ class ResizeController extends Controller
     {
         $component = \Yii::$app->image;
         $request = \Yii::$app->request;
-        $originalFile = $component->getOriginalFile($path);
         $params = $this->extractParameters($request->get());
-        if (!$originalFile || !$component->validateSignature($signature, $path, $params)) {
+
+        if (!$component->originalStorage->has($path) || !$component->validateSignature($signature, $path, $params)) {
             throw new NotFoundHttpException();
         }
 
         // Get and validate mime type
-        $mimeType = FileHelper::getMimeType($originalFile);
+        $mimeType = $component->originalStorage->getMimetype($path);
         if (!$mimeType || !$component->isMimeTypeValid($mimeType)) {
             throw new BadRequestHttpException();
         }
@@ -63,9 +63,12 @@ class ResizeController extends Controller
         // Get extension by mime type
         $extension = $component->getExtensionByMimeType($mimeType);
 
+        // Read file content
+        $content = $component->originalStorage->read($path);
+
         $output = $component
             ->resize
-            ->get($originalFile, $extension, $params);
+            ->thumbFromContent($content, $extension, $params);
 
         $response = \Yii::$app->response;
         header_remove('Expires');
