@@ -6,6 +6,7 @@ use creocoder\flysystem\Filesystem;
 use League\Flysystem\AdapterInterface;
 use mgcode\helpers\NumberHelper;
 use mgcode\helpers\TimeHelper;
+use mgcode\imagefly\models\ImageThumb;
 use Yii;
 use yii\base\BaseObject;
 use yii\base\InvalidConfigException;
@@ -28,6 +29,12 @@ class ImageComponent extends BaseObject
      * @var Filesystem
      */
     public $originalStorage;
+
+    /**
+     * Storage adapter for thumbnails
+     * @var Filesystem
+     */
+    public $thumbStorage;
 
     /**
      * Template for building urls.
@@ -67,6 +74,9 @@ class ImageComponent extends BaseObject
         ResizeComponent::PARAM_JPEG_QUALITY => 90,
     ];
 
+    /** @var string */
+    public $thumbPathTemplate = 'media/{signature}/{path}';
+
     /**
      * Component that is responsible for image resizing
      * @var ResizeComponent
@@ -77,11 +87,20 @@ class ImageComponent extends BaseObject
     public function init()
     {
         parent::init();
+        // Set vars
+        $this->originalStorage = Instance::ensure($this->originalStorage, Filesystem::className());
+        if ($this->thumbStorage) {
+            $this->thumbStorage = Instance::ensure($this->thumbStorage, Filesystem::className());
+        }
+        $this->resize = Instance::ensure($this->resize, ResizeComponent::className());
+
+        // Validate vars
         if ($this->signatureSalt === null) {
             throw new InvalidConfigException('`signatureSalt` must be set.');
         }
-        $this->originalStorage = Instance::ensure($this->originalStorage, Filesystem::className());
-        $this->resize = Instance::ensure($this->resize, ResizeComponent::className());
+//        if ($this->autoResize && !$this->thumbStorage) {
+//            throw new InvalidConfigException('`thumbStorage` must be set.');
+//        }
     }
 
     /**
@@ -197,7 +216,35 @@ class ImageComponent extends BaseObject
                 'visibility' => AdapterInterface::VISIBILITY_PRIVATE
             ]);
 
+            //            if ($this->autoResize) {
+            //                $this->createThumb($image, $content, )
+            //            }
+
             return $image;
+        });
+    }
+
+    public function createThumb(Image $image, $originalContent, $params)
+    {
+        Yii::$app->db->transaction(function () use ($image, $originalContent, $params) {
+            $extension = $this->getExtensionByMimeType($image->mime_type);
+            $signature = $this->generateSignature($image->getFullPath(), $params);
+            $content = $this->resize->thumbFromContent($originalContent, $extension, $params);
+
+            $model = new ImageThumb(ImageThumb::buildAttributes($params));
+            $model->image_id = $image->id;
+            $model->signature = $signature;
+            $model->saveOrFail(false);
+
+            $path = strtr($this->thumbPathTemplate, [
+                '{signature}' => $signature,
+                '{path}' => $image->getFullPath(),
+                '{directory}' => $image->path,
+                '{filename}' => $image->filename,
+            ]);
+            $this->thumbStorage->put($path, $content, [
+                'visibility' => AdapterInterface::VISIBILITY_PUBLIC
+            ]);
         });
     }
 

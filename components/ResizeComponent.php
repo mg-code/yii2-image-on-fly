@@ -100,6 +100,11 @@ class ResizeComponent extends \yii\base\BaseObject
         return $ratio;
     }
 
+    public function mergeParamsWithDefault($params)
+    {
+        return array_merge($this->defaultParameters, $params);
+    }
+
     /**
      * Creates image instance from given parameters
      * @param $originalFile
@@ -109,7 +114,7 @@ class ResizeComponent extends \yii\base\BaseObject
      */
     protected function createImage(ImagineImage $original, $params, &$options)
     {
-        $params = array_merge($this->defaultParameters, $params);
+        $params = $this->mergeParamsWithDefault($params);
         if (isset($params[static::PARAM_BACKGROUND])) {
             $color = (new RGB())->color($params[static::PARAM_BACKGROUND]);
             $image = (new Imagine())->create($original->getSize(), $color);
