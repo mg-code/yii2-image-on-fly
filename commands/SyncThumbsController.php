@@ -6,6 +6,7 @@ use mgcode\commandLogger\LoggingTrait;
 use mgcode\imagefly\models\Image;
 use yii\base\InvalidConfigException;
 use yii\console\Controller;
+use yii\db\Expression;
 use yii\helpers\Console;
 
 class SyncThumbsController extends Controller
@@ -24,18 +25,23 @@ class SyncThumbsController extends Controller
 
     public function actionIndex()
     {
-        $this->msg('Syncing image thumbs..');
-        foreach ($this->types as $key => $params) {
-            $this->msg('Syncing type {type}', ['type' => $key]);
-            $params = \Yii::$app->image->resize->mergeParamsWithDefault($params);
-            $this->_syncType($params);
+        while (memory_get_usage() / 1024 / 1024 < 90) {
+            $this->msg('Syncing image thumbs..');
+            foreach ($this->types as $key => $params) {
+                $this->msg('Syncing type {type}', ['type' => $key]);
+                $params = \Yii::$app->image->resize->mergeParamsWithDefault($params);
+                $this->_syncType($params);
+            }
+            $this->msg('Done!');
+            sleep(60);
         }
-        $this->msg('Done!');
     }
 
     private function _syncType($params)
     {
-        $query = Image::find()->doesNotHaveThumb($params);
+        $query = Image::find()
+            ->doesNotHaveThumb($params)
+            ->orderBy(new Expression('RAND()'));
         $count = (clone $query)->count();
         $processed = 0;
         Console::startProgress($processed, $count, $this->getMemoryUsageMsg());
