@@ -83,6 +83,11 @@ class ImageComponent extends BaseObject
      */
     public $resize = 'mgcode\imagefly\components\ResizeComponent';
 
+    /**
+     * @var array Pre resizes images
+     */
+    public $preResizeTypes = [];
+
     /** @inheritdoc */
     public function init()
     {
@@ -98,9 +103,9 @@ class ImageComponent extends BaseObject
         if ($this->signatureSalt === null) {
             throw new InvalidConfigException('`signatureSalt` must be set.');
         }
-//        if ($this->autoResize && !$this->thumbStorage) {
-//            throw new InvalidConfigException('`thumbStorage` must be set.');
-//        }
+        if ($this->preResizeTypes && !$this->thumbStorage) {
+            throw new InvalidConfigException('`thumbStorage` must be set.');
+        }
     }
 
     /**
@@ -216,9 +221,11 @@ class ImageComponent extends BaseObject
                 'visibility' => AdapterInterface::VISIBILITY_PRIVATE
             ]);
 
-            //            if ($this->autoResize) {
-            //                $this->createThumb($image, $content, )
-            //            }
+            if ($this->preResizeTypes) {
+                foreach ($this->preResizeTypes as $params) {
+                    $this->createThumb($image, $content, $params);
+                }
+            }
 
             return $image;
         });
@@ -257,9 +264,13 @@ class ImageComponent extends BaseObject
     public function getImageUrl($path, $params)
     {
         $signature = $this->generateSignature($path, $params);
+        $directory = dirname($path);
+        $filename = basename($path);
         $url = strtr($this->urlTemplate, [
             '{signature}' => $signature,
             '{path}' => $path,
+            '{directory}' => $directory,
+            '{filename}' => $filename,
         ]);
         $url .= '?'.http_build_query($params);
         return $url;
