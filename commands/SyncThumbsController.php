@@ -25,16 +25,14 @@ class SyncThumbsController extends Controller
 
     public function actionIndex()
     {
-        while (memory_get_usage() / 1024 / 1024 < 90) {
-            $this->msg('Syncing image thumbs..');
-            foreach ($this->types as $key => $params) {
-                $this->msg('Syncing type {type}', ['type' => $key]);
-                $params = \Yii::$app->image->resize->mergeParamsWithDefault($params);
-                $this->_syncType($params);
-            }
-            $this->msg('Done!');
-            sleep(60);
+        $this->msg('Syncing image thumbs..');
+        foreach ($this->types as $key => $params) {
+            $this->msg('Syncing type {type}', ['type' => $key]);
+            $params = \Yii::$app->image->resize->mergeParamsWithDefault($params);
+            $this->_syncType($params);
         }
+        $this->msg('Done!');
+        sleep(60);
     }
 
     private function _syncType($params)
