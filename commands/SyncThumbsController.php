@@ -23,10 +23,13 @@ class SyncThumbsController extends Controller
         }
     }
 
-    public function actionIndex()
+    public function actionIndex($type = null)
     {
         $this->msg('Syncing image thumbs..');
         foreach ($this->types as $key => $params) {
+            if ($type !== null && $key != $type) {
+                continue;
+            }
             $this->msg('Syncing type {type}', ['type' => $key]);
             $params = \Yii::$app->image->resize->mergeParamsWithDefault($params);
             $this->_syncType($params);
