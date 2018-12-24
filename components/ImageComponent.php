@@ -263,7 +263,8 @@ class ImageComponent extends BaseObject
      */
     public function getImageUrl($path, $params)
     {
-        $signature = $this->generateSignature($path, $params);
+        $signatureParams = $this->resize->mergeParamsWithDefault($params);
+        $signature = $this->generateSignature($path, $signatureParams);
         $directory = dirname($path);
         $filename = basename($path);
         $url = strtr($this->urlTemplate, [
