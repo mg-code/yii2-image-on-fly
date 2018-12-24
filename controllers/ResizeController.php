@@ -50,7 +50,8 @@ class ResizeController extends Controller
         $request = \Yii::$app->request;
         $params = $this->extractParameters($request->get());
 
-        if (!$component->originalStorage->has($path) || !$component->validateSignature($signature, $path, $params)) {
+        $signatureParams = $component->resize->mergeParamsWithDefault($params);
+        if (!$component->originalStorage->has($path) || !$component->validateSignature($signature, $path, $signatureParams)) {
             throw new NotFoundHttpException();
         }
 
