@@ -13,42 +13,32 @@ class SyncThumbsController extends Controller
 {
     use LoggingTrait;
 
-    public $types;
-
-    public function init()
-    {
-        parent::init();
-        if (!$this->types) {
-            throw new InvalidConfigException('`types` must be defined.');
-        }
-    }
-
     public function actionIndex($type = null)
     {
         $this->msg('Syncing image thumbs..');
-        foreach ($this->types as $key => $params) {
+        $types = \Yii::$app->image->types;
+        foreach ($types as $key => $params) {
             if ($type !== null && $key != $type) {
                 continue;
             }
             $this->msg('Syncing type {type}', ['type' => $key]);
-            $params = \Yii::$app->image->resize->mergeParamsWithDefault($params);
-            $this->_syncType($params);
+            $this->_syncType($key, $params);
         }
         $this->msg('Done!');
         sleep(60);
     }
 
-    private function _syncType($params)
+    private function _syncType($type, $params)
     {
         $query = Image::find()
-            ->doesNotHaveThumb($params)
+            ->doesNotHaveThumb($type)
             ->orderBy(new Expression('RAND()'));
         $count = (clone $query)->count();
         $processed = 0;
         Console::startProgress($processed, $count, $this->getMemoryUsageMsg());
         foreach ($query->batch(5) as $images) {
             foreach ($images as $image) {
-                $this->_syncImage($image, $params);
+                $this->_syncImage($image, $type, $params);
             }
             $processed += count($images);
             Console::updateProgress($processed, $count, $this->getMemoryUsageMsg());
@@ -57,13 +47,14 @@ class SyncThumbsController extends Controller
 
     /**
      * @param Image $image
+     * @param string $type
      * @param array $params
      */
-    private function _syncImage(Image $image, $params)
+    private function _syncImage(Image $image, $type, $params)
     {
         $component = \Yii::$app->image;
         $storage = $component->originalStorage;
         $content = $storage->read($image->getFullPath());
-        $component->createThumb($image, $content, $params);
+        $component->createThumb($image, $content, $type, $params);
     }
 }

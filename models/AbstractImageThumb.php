@@ -9,6 +9,7 @@ use Yii;
  *
  * @property string $signature
  * @property integer $image_id
+ * @property integer $type
  * @property integer $width
  * @property integer $height
  * @property integer $jpeg_quality

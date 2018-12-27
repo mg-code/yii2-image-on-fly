@@ -15,14 +15,14 @@ class ImageQuery extends \yii\db\ActiveQuery
 {
     use ActiveQueryHelperTrait;
 
-    public function doesNotHaveThumb($params)
+    public function doesNotHaveThumb($type)
     {
         $alias = $this->getTableAlias();
         $subQuery = (new Query())
             ->select(['t.image_id'])
             ->from('image_thumb t')
             ->andWhere("t.image_id = {$alias}.id")
-            ->andWhere(ImageThumb::buildAttributes($params));
+            ->andWhere(['t.type' => $type]);
         $this->andWhere(['not exists', $subQuery]);
         return $this;
     }

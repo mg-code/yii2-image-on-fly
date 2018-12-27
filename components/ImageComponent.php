@@ -58,12 +58,6 @@ class ImageComponent extends BaseObject
     ];
 
     /**
-     * Salt used for signature generation.
-     * @var string
-     */
-    public $signatureSalt;
-
-    /**
      * Apply parameters for original image resize
      * @var array
      */
@@ -86,7 +80,7 @@ class ImageComponent extends BaseObject
     /**
      * @var array Pre resizes images
      */
-    public $preResizeTypes = [];
+    public $types = [];
 
     /** @inheritdoc */
     public function init()
@@ -98,12 +92,7 @@ class ImageComponent extends BaseObject
             $this->thumbStorage = Instance::ensure($this->thumbStorage, Filesystem::className());
         }
         $this->resize = Instance::ensure($this->resize, ResizeComponent::className());
-
-        // Validate vars
-        if ($this->signatureSalt === null) {
-            throw new InvalidConfigException('`signatureSalt` must be set.');
-        }
-        if ($this->preResizeTypes && !$this->thumbStorage) {
+        if (!$this->thumbStorage) {
             throw new InvalidConfigException('`thumbStorage` must be set.');
         }
     }
@@ -200,20 +189,18 @@ class ImageComponent extends BaseObject
     protected function saveImage($tmpLocation, $mimeType)
     {
         return Yii::$app->db->transaction(function () use ($tmpLocation, $mimeType) {
-            $extension = $this->getExtensionByMimeType($mimeType);
-            $size = $this->getImageSize($tmpLocation);
-
-            // Save image with temporary directory
+            // Save image with temporary state
             $image = new Image();
             $image->path = $image->filename = 'temp';
             $image->mime_type = $mimeType;
-            $image->height = $size['height'];
-            $image->width = $size['width'];
+            $image->height = 0;
+            $image->width = 0;
             $image->saveOrFail(false);
 
+            // Generate upload path and filename
+            $extension = $this->getExtensionByMimeType($mimeType);
             $image->path = $this->generateUploadPath($image->id);
             $image->filename = $image->id.'.'.$extension;
-            $image->saveOrFail();
 
             // Save content
             $content = $this->resize->thumbFromFile($tmpLocation, $extension, $this->originalImageParams);
@@ -221,25 +208,30 @@ class ImageComponent extends BaseObject
                 'visibility' => AdapterInterface::VISIBILITY_PRIVATE
             ]);
 
-            if ($this->preResizeTypes) {
-                foreach ($this->preResizeTypes as $params) {
-                    $this->createThumb($image, $content, $params);
-                }
+            // Set image size and save image
+            list($width, $height) = getimagesizefromstring($content);
+            $image->height = $width;
+            $image->width = $height;
+            $image->saveOrFail();
+
+            foreach ($this->types as $type => $params) {
+                $this->createThumb($image, $content, $type, $params);
             }
 
             return $image;
         });
     }
 
-    public function createThumb(Image $image, $originalContent, $params)
+    public function createThumb(Image $image, $originalContent, $type, $params)
     {
-        Yii::$app->db->transaction(function () use ($image, $originalContent, $params) {
+        Yii::$app->db->transaction(function () use ($image, $originalContent, $type, $params) {
             $extension = $this->getExtensionByMimeType($image->mime_type);
-            $signature = $this->generateSignature($image->getFullPath(), $params);
             $content = $this->resize->thumbFromContent($originalContent, $extension, $params);
+            $signature = md5($image->id.$type.microtime());
 
             $model = new ImageThumb(ImageThumb::buildAttributes($params));
             $model->image_id = $image->id;
+            $model->type = $type;
             $model->signature = $signature;
             $model->saveOrFail(false);
 
@@ -258,12 +250,11 @@ class ImageComponent extends BaseObject
     /**
      * Returns public url of image
      * @param string $path
-     * @param array $params
+     * @param string $signature
      * @return string
      */
-    public function getImageUrl($path, $params)
+    public function getImageUrl($path, $signature)
     {
-        $signature = $this->generateSignature($path, $params);
         $directory = dirname($path);
         $filename = basename($path);
         $url = strtr($this->urlTemplate, [
@@ -272,7 +263,6 @@ class ImageComponent extends BaseObject
             '{directory}' => $directory,
             '{filename}' => $filename,
         ]);
-        $url .= '?'.http_build_query($params);
         return $url;
     }
 
@@ -294,55 +284,6 @@ class ImageComponent extends BaseObject
     public function isMimeTypeValid($mimeType)
     {
         return in_array($mimeType, $this->mimeTypes);
-    }
-
-    /**
-     * Validates image signature
-     * @param string $signature
-     * @param string $path
-     * @param array $params
-     * @return bool
-     */
-    public function validateSignature($signature, $path, $params)
-    {
-        return $signature == $this->generateSignature($path, $params);
-    }
-
-    /**
-     * Generates image signature from path and parameters
-     * @param string $path
-     * @param array $params
-     * @return string
-     */
-    public function generateSignature($path, $params)
-    {
-        $params = $this->resize->mergeParamsWithDefault($params);
-        $parts = [$path, $this->signatureSalt];
-        foreach ($params as $key => $value) {
-            $parts[] = $key.':'.$value;
-        }
-        array_multisort($parts);
-        return md5(json_encode(array_reverse($parts)));
-    }
-
-    /**
-     * This is native php function wrapper, native function raises error.
-     * @param $fileName
-     * @param null $imageInfo
-     * @return array
-     * @throws \yii\base\Exception
-     */
-    public function getImageSize($fileName, &$imageInfo = null)
-    {
-        $data = @getimagesize($fileName, $imageInfo);
-        if ($data === false) {
-            throw new InvalidValueException('Failed to get image size.');
-        }
-        return [
-            'width' => (int) $data[0],
-            'height' => (int) $data[1],
-            'mimeType' => $data['mime'],
-        ];
     }
 
     /**
