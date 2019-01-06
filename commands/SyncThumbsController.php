@@ -55,6 +55,6 @@ class SyncThumbsController extends Controller
         $component = \Yii::$app->image;
         $storage = $component->originalStorage;
         $content = $storage->read($image->getFullPath());
-        $component->createThumb($image, $content, $type, $params);
+        $component->createThumb($image, $content, $type);
     }
 }

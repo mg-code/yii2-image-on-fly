@@ -210,21 +210,23 @@ class ImageComponent extends BaseObject
 
             // Set image size and save image
             list($width, $height) = getimagesizefromstring($content);
-            $image->height = $width;
-            $image->width = $height;
+            $image->height = $height;
+            $image->width = $width;
             $image->saveOrFail();
 
-            foreach ($this->types as $type => $params) {
-                $this->createThumb($image, $content, $type, $params);
+            foreach (array_keys($this->types) as $type) {
+                $this->createThumb($image, $content, $type);
             }
 
             return $image;
         });
     }
 
-    public function createThumb(Image $image, $originalContent, $type, $params)
+    public function createThumb(Image $image, $originalContent, $type)
     {
-        Yii::$app->db->transaction(function () use ($image, $originalContent, $type, $params) {
+        Yii::$app->db->transaction(function () use ($image, $originalContent, $type) {
+            $params = $this->types[$type];
+
             $extension = $this->getExtensionByMimeType($image->mime_type);
             $content = $this->resize->thumbFromContent($originalContent, $extension, $params);
             $signature = md5($image->id.$type.microtime());
